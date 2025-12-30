@@ -99,21 +99,20 @@ prevent the window from being resized."
        (with-current-buffer (window-buffer window)
          (not (auto-width--exclude-buffer-name-p)))))
 
-(defun auto-width--apply (&optional window)
-  "Resize selected WINDOW to `auto-width-target-width' columns.
+(defun auto-width--apply (window)
+  "Resize WINDOW to `auto-width-target-width' columns.
 
 Does nothing when resizing is impossible (e.g. due to frame
 constraints)."
   (when (and auto-width-mode
              (not auto-width--inhibit))
-    (let* ((win (or window (selected-window)))
-           (target (max 1 auto-width-target-width))
-           (delta (- target (window-body-width win))))
-      (when (and (auto-width--eligible-window-p win)
+    (let* ((target (max 1 auto-width-target-width))
+           (delta (- target (window-body-width window))))
+      (when (and (auto-width--eligible-window-p window)
                  (not (zerop delta)))
         (let ((auto-width--inhibit t))
           (condition-case _err
-              (window-resize win delta t)
+              (window-resize window delta t)
             (error nil)))))))
 
 (defun auto-width--on-selection-change (&rest _args)
