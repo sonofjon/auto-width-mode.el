@@ -14,6 +14,7 @@ columns) without manual resizing each time you switch focus.
 ## Features
 
 - Automatically resizes focused window to target width (default 80 columns)
+- Smart width adjustment for line numbers and margins
 - Excludes windows by major mode or buffer name pattern
 - Respects window constraints (minibuffer, dedicated windows)
 - Graceful handling when resizing is impossible
@@ -93,6 +94,32 @@ Exclude buffers whose names match regexp patterns:
 (setq auto-width-exclude-buffer-regexp '("^\\*Messages\\*" "^\\*scratch\\*" "^\\*.*[Hh]elp\\*"))
 ```
 
+### Adjust for Line Numbers and Margins
+
+By default, auto-width-mode adjusts the target width to account for line numbers
+and margins, ensuring the actual text area maintains your desired width:
+
+```elisp
+;; Adjust for line numbers (default t)
+(setq auto-width-adjust-for-line-numbers t)
+
+;; Adjust for window margins (default t)
+(setq auto-width-adjust-for-margins t)
+```
+
+When `auto-width-adjust-for-line-numbers` is enabled and
+`display-line-numbers-mode` is active, the window will be made wider to
+compensate for the space used by line numbers. Similarly, when
+`auto-width-adjust-for-margins` is enabled, the window accounts for left and
+right margins.
+
+Disable these if you want a strict fixed width regardless of UI elements:
+
+```elisp
+(setq auto-width-adjust-for-line-numbers nil
+      auto-width-adjust-for-margins nil)
+```
+
 ### Example Configuration
 
 ```elisp
@@ -101,6 +128,9 @@ Exclude buffers whose names match regexp patterns:
   :custom
   ;; Set target width
   (auto-width-target-width 80)
+  ;; Adjust for line numbers and margins (default t)
+  (auto-width-adjust-for-line-numbers t)
+  (auto-width-adjust-for-margins t)
   ;; Exclude some major modes
   (auto-width-exclude-modes '(dired-mode magit-status-mode))
   ;; Exclude some buffer patterns

@@ -67,6 +67,21 @@ prevent the window from being resized."
   :type '(repeat string)
   :group 'auto-width)
 
+(defcustom auto-width-adjust-for-line-numbers t
+  "When non-nil, adjust target width to account for line numbers.
+If `display-line-numbers-mode' is enabled in a buffer, the target
+width will be increased to compensate for the space used by line
+numbers, ensuring the text area maintains the desired width."
+  :type 'boolean
+  :group 'auto-width)
+
+(defcustom auto-width-adjust-for-margins t
+  "When non-nil, adjust target width to account for window margins.
+The target width will be increased to compensate for left and right
+margins, ensuring the text area maintains the desired width."
+  :type 'boolean
+  :group 'auto-width)
+
 (defvar auto-width-mode nil
   "Non-nil when auto-width-mode is enabled.")
 
@@ -85,6 +100,30 @@ prevent the window from being resized."
                    (string-match regexp (buffer-name)))
                  auto-width-exclude-buffer-regexp)))
 
+(defun auto-width--calculate-target (window)
+  "Calculate target width for WINDOW.
+Accounts for line number display width and window margins when
+`auto-width-adjust-for-line-numbers' and `auto-width-adjust-for-margins'
+are enabled."
+  (let ((base-width auto-width-target-width)
+        (line-num-width 0)
+        (margin-width 0))
+    ;; Calculate line number width if enabled
+    (when auto-width-adjust-for-line-numbers
+      (with-current-buffer (window-buffer window)
+        (when (bound-and-true-p display-line-numbers-mode)
+          (let* ((line-count (line-number-at-pos (point-max) t))
+                 (num-digits (length (number-to-string line-count))))
+            (setq line-num-width (+ num-digits 2))))))  ; digits + 2 padding
+    ;; Calculate margin width if enabled
+    (when auto-width-adjust-for-margins
+      (let* ((margins (window-margins window))
+             (left-margin (or (car margins) 0))
+             (right-margin (or (cdr margins) 0)))
+        (setq margin-width (+ left-margin right-margin))))
+    ;; Return total target width
+    (+ base-width line-num-width margin-width)))
+
 (defun auto-width--eligible-window-p (window)
   "Return non-nil when WINDOW should be auto-resized."
   (and (window-live-p window)
@@ -100,13 +139,14 @@ prevent the window from being resized."
          (not (auto-width--exclude-buffer-name-p)))))
 
 (defun auto-width--apply (window)
-  "Resize WINDOW to `auto-width-target-width' columns.
+  "Resize WINDOW to target width.
 
-Does nothing when resizing is impossible (e.g. due to frame
-constraints)."
+The target width is calculated by `auto-width--calculate-target',
+which may adjust for line numbers and margins based on user settings.
+Does nothing when resizing is impossible (e.g. due to frame constraints)."
   (when (and auto-width-mode
              (not auto-width--inhibit))
-    (let* ((target (max 1 auto-width-target-width))
+    (let* ((target (max 1 (auto-width--calculate-target window)))
            (delta (- target (window-body-width window))))
       (when (and (auto-width--eligible-window-p window)
                  (not (zerop delta)))
